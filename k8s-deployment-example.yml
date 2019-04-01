@@ -1,0 +1,46 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: lunchbot
+spec:
+  finalizers:
+  - kubernetes
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: lunchbot
+  name: lunchbot
+  namespace: lunchbot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lunchbot
+  template:
+    metadata:
+      labels:
+        app: lunchbot
+    spec:
+      containers:
+      - args:
+        - /data/persistence.json
+        env:
+        - name: DISCORD_TOKEN
+          value: <your_token>
+        image: rossigee/lunchbot
+        name: lunchbot
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+        volumeMounts:
+        - mountPath: /data
+          name: state
+      restartPolicy: Always
+      volumes:
+      - name: state
+        hostPath:
+          path: /var/lib/lunchbot

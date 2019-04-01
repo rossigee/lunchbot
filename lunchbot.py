@@ -7,7 +7,6 @@ import discord
 import logging
 #logging.basicConfig(level = logging.DEBUG)
 _logger = logging.getLogger(__name__)
-print(_logger.handlers)
 _logger.setLevel(logging.DEBUG)
 
 DEFAULT_STATE = {
@@ -57,7 +56,7 @@ class Lunchbot:
         async def on_message(message):
             _logger.debug(f"{message.author}: {message.content}")
             if(message.content[0:6].lower() == "/lunch"):
-                reply = f"Next lunch is on {self.state.next_time}. It's {self.state.who_pays}'s turn to pay."
+                reply = f"Next lunch is on {self.state['next_time']}. It's {self.state['who_pays']}'s turn to pay."
                 await client.send_message(message.channel, reply)
 
         _logger.info(f"Starting Discord client...")

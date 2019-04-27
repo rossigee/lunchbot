@@ -67,11 +67,6 @@ DEFAULT_STATE = {
     ]
 }
 
-# test
-#DISCORD_CHANNEL = 560784179076399142
-# general
-DISCORD_CHANNEL = 535741698345795596
-
 schedstop = threading.Event()
 
 
@@ -87,9 +82,10 @@ class ScheduleThread(threading.Thread):
 
 
 class Lunchbot:
-    def __init__(self, statefilename, token):
+    def __init__(self, statefilename, token, channel_id):
         self.statefilename = statefilename
         self.token = token
+        self.channel_id = channel_id
 
         # Default state, to seed persistent state if not found
         self.state = DEFAULT_STATE
@@ -127,11 +123,11 @@ class Lunchbot:
 
         @self.client.event
         async def on_ready():
-            _logger.info(f"Logged into Discord as {self.client.user}.")
+            _logger.info(f"Logged into Discord channel {self.client.user}.")
 
-            self.channel = self.client.get_channel(DISCORD_CHANNEL)
+            self.channel = self.client.get_channel(int(self.channel_id))
             if self.channel is None:
-                _logger.error("Unable to connect to notification channel.")
+                _logger.error(f"Unable to connect to notification channel ({self.channel_id}).")
             else:
                 _logger.info(f"Connected to channel {self.channel}.")
 
@@ -256,12 +252,13 @@ class Lunchbot:
         #sys.exit(0)
 
 if __name__ == '__main__':
-    token = os.getenv("DISCORD_TOKEN")
-
     try:
         statefile = sys.argv[1]
     except:
         statefile = "/persistence.json"
 
-    lunchbot = Lunchbot(statefile, token)
+    token = os.getenv("DISCORD_TOKEN")
+    channel_id = os.getenv("DISCORD_CHANNEL")
+
+    lunchbot = Lunchbot(statefile, token, channel_id)
     lunchbot.main()

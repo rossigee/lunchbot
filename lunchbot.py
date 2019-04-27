@@ -73,12 +73,12 @@ schedstop = threading.Event()
 class ScheduleThread(threading.Thread):
     @classmethod
     def run(cls):
-        _logger.debug("Running scheduler thread...")
+        _logger.info("Running scheduler thread...")
         while not schedstop.is_set():
             _logger.debug("Running pending tasks in scheduler thread...")
             schedule.run_pending()
             time.sleep(5)
-        _logger.debug("Exiting scheduler thread...")
+        _logger.info("Exiting scheduler thread...")
 
 
 class Lunchbot:
@@ -109,7 +109,7 @@ class Lunchbot:
             f = open(self.statefilename, "w")
             f.write(json.dumps(self.state, indent=4))
             f.close()
-            _logger.info(f"State saved to file ({self.statefilename}).")
+            _logger.debug(f"State saved to file ({self.statefilename}).")
         except:
             e = sys.exc_info()[0]
             _logger.exception(f"Could not save state file ({self.statefilename}).", e)
@@ -123,7 +123,7 @@ class Lunchbot:
 
         @self.client.event
         async def on_ready():
-            _logger.info(f"Logged into Discord channel {self.client.user}.")
+            _logger.info(f"Logged into Discord as {self.client.user}.")
 
             self.channel = self.client.get_channel(int(self.channel_id))
             if self.channel is None:
@@ -136,10 +136,11 @@ class Lunchbot:
 
         @self.client.event
         async def on_message(message):
-            _logger.debug(f"{message.channel.id}:{message.author}: {message.content}")
             if message.content[0:6].lower() != "/lunch":
                 return
-            elif message.content.lower() == "/lunch status":
+
+            _logger.info(f"{message.channel.id}:{message.author}: {message.content}")
+            if message.content.lower() == "/lunch status":
                 await self.status(message)
             elif message.content.lower() == "/lunch skip":
                 await self.skip(message)
@@ -153,7 +154,7 @@ class Lunchbot:
         participants = self.state['participants']
         who_paid_last = self.state['who_pays']
         next_participant_id = (participants.index(who_paid_last) + 1) % len(participants)
-        _logger.debug("Setting next payee to {}.".format(participants[next_participant_id]))
+        _logger.info("Setting next payee to {}.".format(participants[next_participant_id]))
         self._set_state('who_pays', participants[next_participant_id])
 
     def _set_next_place(self):
@@ -164,21 +165,21 @@ class Lunchbot:
         while last_place['name'] == next_place['name']:
             idx = random.randint(0, len(places))
             next_place = self.state['places'][idx]
-        _logger.debug("Setting next place to {}.".format(next_place['name']))
+        _logger.info("Setting next place to {}.".format(next_place['name']))
         self._set_state('next_place', next_place)
 
     def _move_to_next_friday(self):
         today = datetime.date.today()
         friday = today + datetime.timedelta((4 - today.weekday()) % 7)
         friday_json = friday.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-        _logger.debug("Moving to next {}.".format(friday.strftime("%A, %b %d %Y %H:%M")))
+        _logger.info("Moving to next {}.".format(friday.strftime("%A, %b %d %Y %H:%M")))
         self._set_state('next_time', friday_json)
 
     def _move_to_following_friday(self):
         today = datetime.date.today() + datetime.timedelta(7)
         friday = today + datetime.timedelta((4 - today.weekday()) % 7)
         friday_json = friday.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-        _logger.debug("Moving to following {}.".format(friday.strftime("%A, %b %d %Y %H:%M")))
+        _logger.info("Moving to following {}.".format(friday.strftime("%A, %b %d %Y %H:%M")))
         self._set_state('next_time', friday_json)
 
     def _get_next_time_str(self):
@@ -233,23 +234,19 @@ class Lunchbot:
         schedule.every().friday.at("14:00").do(self.next_time)
         schedule.every().minute.do(self.save_state)
 
-        _logger.debug("Starting scheduler thread...")
         self.scheduler_thread = ScheduleThread()
         self.scheduler_thread.start()
-        _logger.debug("Started scheduler thread...")
 
     def main(self):
         self.setup_discord_client()
 
         self.prepare_scheduler()
 
-        _logger.info(f"Starting Discord client...")
         self.client.run(token)
 
         # Stop scheduler thread
         schedstop.set()
 
-        #sys.exit(0)
 
 if __name__ == '__main__':
     try:

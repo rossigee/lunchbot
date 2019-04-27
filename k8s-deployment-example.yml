@@ -30,6 +30,12 @@ spec:
         env:
         - name: DISCORD_TOKEN
           value: <your_token>
+        env:
+        - name: DISCORD_CHANNEL
+          value: <channel_id>
+        env:
+        - name: TZ
+          value: Asia/Bangkok
         image: rossigee/lunchbot
         name: lunchbot
         resources:

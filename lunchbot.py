@@ -28,6 +28,7 @@ import schedule
 USAGE = """
 Usage:
 `/lunch status` - Show next lunch details.
+`/lunch change place` - Change to a different restaurant.
 `/lunch skip` - Skip due to other commitments.
 """
 
@@ -142,6 +143,8 @@ class Lunchbot:
             _logger.info(f"{message.channel.id}:{message.author}: {message.content}")
             if message.content.lower() == "/lunch status":
                 await self.status(message)
+            elif message.content.lower() == "/lunch change place":
+                await self.change_place(message)
             elif message.content.lower() == "/lunch skip":
                 await self.skip(message)
             else:
@@ -163,21 +166,23 @@ class Lunchbot:
         next_place = last_place
         places = self.state['places']
         while last_place['name'] == next_place['name']:
-            idx = random.randint(0, len(places))
+            idx = random.randint(0, len(places) - 1)
             next_place = self.state['places'][idx]
         _logger.info("Setting next place to {}.".format(next_place['name']))
         self._set_state('next_place', next_place)
 
     def _move_to_next_friday(self):
-        today = datetime.date.today()
+        today = datetime.datetime.now()
         friday = today + datetime.timedelta((4 - today.weekday()) % 7)
+        friday = friday.replace(hour=12, minute=0, second=0)
         friday_json = friday.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
         _logger.info("Moving to next {}.".format(friday.strftime("%A, %b %d %Y %H:%M")))
         self._set_state('next_time', friday_json)
 
     def _move_to_following_friday(self):
-        today = datetime.date.today() + datetime.timedelta(7)
+        today = datetime.datetime.now() + datetime.timedelta(7)
         friday = today + datetime.timedelta((4 - today.weekday()) % 7)
+        friday = friday.replace(hour=12, minute=0, second=0)
         friday_json = friday.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
         _logger.info("Moving to following {}.".format(friday.strftime("%A, %b %d %Y %H:%M")))
         self._set_state('next_time', friday_json)
@@ -201,6 +206,11 @@ class Lunchbot:
 
     def skip(self, message):
         self._move_to_following_friday()
+        return self.status(message)
+
+    def change_place(self, message):
+        self._move_to_next_friday()
+        self._set_next_place()
         return self.status(message)
 
     def status(self, message):

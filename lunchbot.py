@@ -70,6 +70,12 @@ DEFAULT_STATE = {
 
 schedstop = threading.Event()
 
+def _next_friday():
+    today = datetime.datetime.now()
+    friday = today + datetime.timedelta((4 - today.weekday()) % 7)
+    friday = friday.replace(hour=12, minute=0, second=0)
+    return friday
+
 
 class ScheduleThread(threading.Thread):
     @classmethod
@@ -172,17 +178,13 @@ class Lunchbot:
         self._set_state('next_place', next_place)
 
     def _move_to_next_friday(self):
-        today = datetime.datetime.now()
-        friday = today + datetime.timedelta((4 - today.weekday()) % 7)
-        friday = friday.replace(hour=12, minute=0, second=0)
+        friday = _next_friday()
         friday_json = friday.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
         _logger.info("Moving to next {}.".format(friday.strftime("%A, %b %d %Y %H:%M")))
         self._set_state('next_time', friday_json)
 
     def _move_to_following_friday(self):
-        today = datetime.datetime.now() + datetime.timedelta(7)
-        friday = today + datetime.timedelta((4 - today.weekday()) % 7)
-        friday = friday.replace(hour=12, minute=0, second=0)
+        friday = _next_friday() + datetime.timedelta(7)
         friday_json = friday.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
         _logger.info("Moving to following {}.".format(friday.strftime("%A, %b %d %Y %H:%M")))
         self._set_state('next_time', friday_json)
